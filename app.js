@@ -511,7 +511,10 @@ class CubeBuddyApp {
       for (let col = 0; col < 3; col++) {
         const drawRow = swapRows ? (2 - row) : row;
         const drawCol = mirror ? (2 - col) : col;
-        const colorIdx = this.cube.getFaceletColor(faceIdx, drawRow, drawCol);
+        // Always use face's own color for center sticker (slice moves move centers, but 2D stays fixed)
+        const colorIdx = (row === 1 && col === 1)
+          ? faceIdx
+          : this.cube.getFaceletColor(faceIdx, drawRow, drawCol);
 
         const sticker = document.createElement('div');
         sticker.className = 'sticker';
