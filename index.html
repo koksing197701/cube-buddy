@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Cube Buddy">
+  <meta name="description" content="Learn the Rubik's Cube! Fun puzzle game for kids.">
+  <meta name="theme-color" content="#1a1a2e">
+  <base href="/cubebuddy-web/">
+  <title>Cube Buddy</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="styles.css?v=2.7.11">
+</head>
+<body>
+
+  <!-- ===== HOME SCREEN ===== -->
+  <div id="home-screen">
+    <div class="home-header">
+      <div class="logo-icon">🧊</div>
+      <div class="app-title">Cube Buddy</div>
+      <div class="app-subtitle">Learn the Rubik's Cube! 🎯</div>
+    </div>
+
+    <div style="height: 28px"></div>
+
+    <div class="section">
+      <div class="section-title">Choose your buddy 🎮</div>
+      <div id="character-scroll" class="character-scroll"></div>
+    </div>
+
+    <div style="height: 28px"></div>
+
+    <div class="section">
+      <div class="levels-header">
+        <div class="section-title" style="margin-bottom: 0;">Levels 🏆</div>
+        <div class="stars-display">
+          <span>⭐</span>
+          <span id="home-stars">0</span>
+        </div>
+      </div>
+      <div id="stage-list"></div>
+    </div>
+
+    <div class="home-footer">🌟 Rotate. Match. Solve! 🌟</div>
+  </div>
+
+  <!-- ===== PLAY SCREEN ===== -->
+  <div id="play-screen">
+    <div class="play-inner">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <button id="back-btn" class="back-btn">‹</button>
+      <span class="character-name" id="play-char-name">bobby</span>
+      <div class="star-count">
+        <span>⭐</span>
+        <span id="play-stars">0</span>
+          <span class="version-badge">v2.7.15</span>
+      </div>
+    </div>
+    <div class="view-tabs">
+      <button id="view-3d" class="view-tab" data-view="3d">3D</button>
+      <button id="view-2d" class="view-tab active" data-view="2d">2D</button>
+    </div>
+
+    <!-- Hint text -->
+    <div class="play-hint">
+      <span>Tap to turn · Swipe edges · Win stars! ⭐</span>
+    </div>
+
+    <!-- Move counter -->
+    <div class="moves-display">
+      <span>🎮</span>
+      <span>Moves: <span id="move-count">0</span></span>
+      <span id="solved-badge" class="solved-badge" style="display:none">✅ Solved!</span>
+    </div>
+
+    <!-- Cube area -->
+    <div id="cube-area" class="cube-area">
+      <div id="cube-container" class="cube-container"></div>
+      <div id="cube-3d-container" class="cube-container" style="display:none;"></div>
+    </div>
+
+    <!-- Debug overlay (hidden by default) — fixed to viewport so it works across view switches -->
+    <div id="debug-overlay" style="display:none;position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.88);color:#0f0;font-family:monospace;font-size:11px;padding:8px 10px;z-index:9999;pointer-events:none;max-height:40%;overflow-y:auto;line-height:1.5;white-space:pre-wrap;border-bottom:1px solid #0f0;"></div>
+    <div id="debug-overlay-bottom" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.88);color:#0f0;font-family:monospace;font-size:10px;padding:6px 8px;z-index:9999;pointer-events:none;max-height:35%;overflow-y:auto;line-height:1.4;white-space:pre-wrap;border-top:1px solid #0f0;"></div>
+
+    <!-- Bottom panel (fixed position — stays same between 2D/3D) -->
+    <div class="bottom-panel">
+      <div class="mode-controls">
+        <!-- Face buttons (3D) -->
+        <div id="face-buttons" style="display:flex;align-items:center;gap:6px;">
+          <button class="bU" style="width:40px;height:40px;font-size:13px;font-weight:700;border:3px solid #fff;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 8px rgba(0,0,0,0.3);">U</button>
+          <button class="bD" style="width:40px;height:40px;font-size:13px;font-weight:700;border:3px solid #ffeb3b;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 8px rgba(0,0,0,0.3);">D</button>
+          <button class="bF" style="width:40px;height:40px;font-size:13px;font-weight:700;border:3px solid #4caf50;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 8px rgba(0,0,0,0.3);">F</button>
+          <button class="bB" style="width:40px;height:40px;font-size:13px;font-weight:700;border:3px solid #2196f3;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 8px rgba(0,0,0,0.3);">B</button>
+          <button class="bL" style="width:40px;height:40px;font-size:13px;font-weight:700;border:3px solid #ff9800;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 8px rgba(0,0,0,0.3);">L</button>
+          <button class="bR" style="width:40px;height:40px;font-size:13px;font-weight:700;border:3px solid #f44336;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 8px rgba(0,0,0,0.3);">R</button>
+        </div>
+        <!-- 2D controls (hidden in 3D) -->
+        <div id="controls-2d" style="display:none;align-items:center;gap:6px;">
+          <button id="full-btn" class="mode-tab active" title="Show all 9 faces">🔲 Full</button>
+          <button id="focus-btn" class="mode-tab" title="Show 5 main faces">🎯 Focus</button>
+        </div>
+      </div>
+
+      <!-- Always-visible actions: undo, mix, reset, debug -->
+      <div class="panel-actions">
+        <button id="undo-btn" class="undo-btn" disabled style="opacity:0.3">↩️ Undo</button>
+        <button id="mix-btn" class="mix-btn">🔀 Mix!</button>
+        <button id="reset-btn" class="mix-btn">🔄 Reset</button>
+        <button id="debug-btn" style="pointer-events:auto;width:38px;height:38px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#aaa;border-radius:8px;font-size:14px;cursor:pointer;touch-action:manipulation;padding:0;display:flex;align-items:center;justify-content:center;">🐛</button>
+      </div>
+    </div>
+
+    <!-- Snapshots row -->
+    <div id="snapshot-row" class="snapshot-row">
+      <div id="snapshot-container" class="snapshot-container"></div>
+    </div>
+    </div><!-- /play-inner -->
+  </div>
+
+  <!-- ===== TUTORIAL OVERLAY ===== -->
+  <div id="tutorial-overlay" class="tutorial-overlay">
+    <div class="tutorial-card">
+      <div class="tutorial-icon">🧸</div>
+      <div class="tutorial-title" id="tut-title">🎨 Tap the cube!</div>
+      <div class="tutorial-desc" id="tut-desc">Tap a colorful side to spin it!</div>
+      <div id="tut-dots" class="tutorial-dots"></div>
+      <label class="tutorial-remember">
+        <input type="checkbox" id="tut-remember">
+        <span>Don't show again</span>
+      </label>
+      <div class="tutorial-buttons">
+        <button id="skip-btn" class="skip-btn">Skip</button>
+        <button id="next-btn" class="next-btn">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CELEBRATION OVERLAY ===== -->
+  <div id="celebration-overlay" class="celebration-overlay">
+    <div class="celebration-card">
+      <div id="celeb-msg" class="celebration-emojis">🎉🌟🎊</div>
+      <div class="celebration-msg">🎉 AMAZING! You solved it! ⭐</div>
+      <div class="celebration-sub">⭐ You earned a star! ⭐</div>
+      <button id="ok-btn" class="ok-btn">OK!</button>
+    </div>
+  </div>
+
+  <!-- ===== CONFETTI ===== -->
+  <div id="confetti-container" class="confetti-container"></div>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Scripts -->
+  <script src="cube.js?v=2.7.11"></script>
+  <script src="cube-3d-view.js?v=2.7.11"></script>
+  <script src="app.js?v=2.7.11"></script>
+</body>
+</html>

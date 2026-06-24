@@ -1,0 +1,254 @@
+// Cube Buddy - Rubik's Cube Model
+// Face indices: 0=Up(white), 1=Down(yellow), 2=Front(green),
+//               3=Back(blue), 4=Left(orange), 5=Right(red)
+// Version: 2.6.2
+
+const FACE_COLORS = [
+  '#F5F5F5', // Up - White
+  '#FFEB3B', // Down - Yellow
+  '#4CAF50', // Front - Green
+  '#2196F3', // Back - Blue
+  '#FF9800', // Left - Orange
+  '#F44336', // Right - Red
+];
+
+const FACE_LETTERS = ['U', 'D', 'F', 'B', 'L', 'R'];
+const FACE_COLORS_HEX = [0xffffff, 0xffeb3b, 0x4caf50, 0x2196f3, 0xff9800, 0xf44336];
+const FACE_COLORS_RGB = {
+  '#F5F5F5': { r: 0.9, g: 0.9, b: 0.9 },
+  '#FFEB3B': { r: 1.0, g: 0.92, b: 0.23 },
+  '#4CAF50': { r: 0.3, g: 0.69, b: 0.31 },
+  '#2196F3': { r: 0.13, g: 0.59, b: 0.95 },
+  '#FF9800': { r: 1.0, g: 0.6, b: 0.0 },
+  '#F44336': { r: 0.96, g: 0.26, b: 0.21 },
+};
+
+class RubiksCube {
+  constructor() {
+    this._state = this._solvedState();
+  }
+
+  _solvedState() {
+    const state = new Array(54);
+    for (let face = 0; face < 6; face++) {
+      for (let i = 0; i < 9; i++) {
+        state[face * 9 + i] = face;
+      }
+    }
+    return state;
+  }
+
+  get state() {
+    return [...this._state];
+  }
+
+  set state(s) {
+    this._state = [...s];
+  }
+
+  get isSolved() {
+    for (let face = 0; face < 6; face++) {
+      for (let i = 0; i < 9; i++) {
+        if (this._state[face * 9 + i] !== face) return false;
+      }
+    }
+    return true;
+  }
+
+  getFaceletColor(face, row, col) {
+    return this._state[face * 9 + row * 3 + col];
+  }
+
+  _rotateFaceCW(face) {
+    const offset = face * 9;
+    const old = [...this._state];
+    this._state[offset + 0] = old[offset + 6];
+    this._state[offset + 1] = old[offset + 3];
+    this._state[offset + 2] = old[offset + 0];
+    this._state[offset + 3] = old[offset + 7];
+    this._state[offset + 4] = old[offset + 4];
+    this._state[offset + 5] = old[offset + 1];
+    this._state[offset + 6] = old[offset + 8];
+    this._state[offset + 7] = old[offset + 5];
+    this._state[offset + 8] = old[offset + 2];
+  }
+
+  // === VERIFIED TURN FUNCTIONS (v2.6.2) ===
+  // U CW: F row2 → R col2 reversed → B row2 → L col2 reversed → F row2
+  turnU() {
+    this._rotateFaceCW(0);
+    const s = [...this._state];
+    this._state[45]=s[27]; this._state[46]=s[28]; this._state[47]=s[29];
+    this._state[18]=s[45]; this._state[19]=s[46]; this._state[20]=s[47];
+    this._state[36]=s[18]; this._state[37]=s[19]; this._state[38]=s[20];
+    this._state[27]=s[36]; this._state[28]=s[37]; this._state[29]=s[38];
+  }
+
+  turnUprime() { for (let i = 0; i < 3; i++) this.turnU(); }
+
+  // D CW: F row0 → L col2 → B row0 → R col0 → F row0
+  turnD() {
+    this._rotateFaceCW(1);
+    const s = [...this._state];
+    this._state[51]=s[24]; this._state[52]=s[25]; this._state[53]=s[26];
+    this._state[33]=s[51]; this._state[34]=s[52]; this._state[35]=s[53];
+    this._state[42]=s[33]; this._state[43]=s[34]; this._state[44]=s[35];
+    this._state[24]=s[42]; this._state[25]=s[43]; this._state[26]=s[44];
+  }
+
+  turnDprime() { for (let i = 0; i < 3; i++) this.turnD(); }
+
+  // F CW: U row2 (reversed) → R col0 → D row0 (reversed) → L col2 → U row2
+  turnF() {
+    this._rotateFaceCW(2);
+    const s = [...this._state];
+    this._state[45]=s[6];  this._state[48]=s[7];  this._state[51]=s[8];
+    this._state[9]=s[51];  this._state[10]=s[48]; this._state[11]=s[45];
+    this._state[38]=s[9];  this._state[41]=s[10]; this._state[44]=s[11];
+    this._state[6]=s[38];  this._state[7]=s[41];  this._state[8]=s[44];
+  }
+
+  turnFprime() { for (let i = 0; i < 3; i++) this.turnF(); }
+
+  // B CW: U row0 → L col0 → D row2 → R col2 → U row0 (all reversed for perpendicular axes)
+  turnB() {
+    this._rotateFaceCW(3);
+    const s = [...this._state];
+    this._state[42]=s[0]; this._state[39]=s[1]; this._state[36]=s[2];
+    this._state[17]=s[36]; this._state[16]=s[39]; this._state[15]=s[42];
+    this._state[53]=s[15]; this._state[50]=s[16]; this._state[47]=s[17];
+    this._state[2]=s[47];  this._state[1]=s[50];  this._state[0]=s[53];
+  }
+
+  turnBprime() { for (let i = 0; i < 3; i++) this.turnB(); }
+
+  // L CW: U col0 → F col0 → D col0 → B col2 → U col0
+  turnL() {
+    this._rotateFaceCW(4);
+    const s = [...this._state];
+    this._state[18]=s[0];  this._state[21]=s[3];  this._state[24]=s[6];
+    this._state[9]=s[18];  this._state[12]=s[21]; this._state[15]=s[24];
+    this._state[35]=s[9];  this._state[32]=s[12]; this._state[29]=s[15];
+    this._state[0]=s[35];  this._state[3]=s[32];  this._state[6]=s[29];
+  }
+
+  turnLprime() { for (let i = 0; i < 3; i++) this.turnL(); }
+
+  // R CW: U col2 → B col0 → D col2 → F col2 → U col2
+  turnR() {
+    this._rotateFaceCW(5);
+    const s = [...this._state];
+    this._state[2]=s[20];  this._state[5]=s[23];  this._state[8]=s[26];
+    this._state[33]=s[2];  this._state[30]=s[5];  this._state[27]=s[8];
+    this._state[11]=s[27]; this._state[14]=s[30]; this._state[17]=s[33];
+    this._state[20]=s[11]; this._state[23]=s[14]; this._state[26]=s[17];
+  }
+
+  turnRprime() { for (let i = 0; i < 3; i++) this.turnR(); }
+
+  // === SLICE MOVES ===
+  // E CW (from +Y): rotate y=0 layer around Y, preserving centers
+  // Edge pairs at y=0: A(21+41), B(39+32), C(50+30), D(48+23)
+  turnECW() {
+    const s = [...this._state];
+    this._state[39]=s[41]; this._state[32]=s[21]; // A→B: L(r1,c0)=L(r1,c2), B(r1,c2)=F(r1,c0)
+    this._state[50]=s[39]; this._state[30]=s[32]; // B→C: R(r1,c2)=L(r1,c0), B(r1,c0)=B(r1,c2)
+    this._state[48]=s[50]; this._state[23]=s[30]; // C→D: R(r1,c0)=R(r1,c2), F(r1,c2)=B(r1,c0)
+    this._state[41]=s[48]; this._state[21]=s[23]; // D→A: L(r1,c2)=R(r1,c0), F(r1,c0)=F(r1,c2)
+  }
+
+  turnECCW() {
+    const s = [...this._state];
+    this._state[41]=s[39]; this._state[21]=s[32]; // B→A (reverse A→B)
+    this._state[39]=s[50]; this._state[32]=s[30]; // C→B (reverse B→C)
+    this._state[50]=s[48]; this._state[30]=s[23]; // D→C (reverse C→D)
+    this._state[48]=s[41]; this._state[23]=s[21]; // A→D (reverse D→A)
+  }
+
+  // M CW (from +R): rotate x=0 layer around X, preserving centers
+  // Edge pairs at x=0: A(19+7), B(28+1), C(34+16), D(25+10)
+  turnMCW() {
+    const s = [...this._state];
+    this._state[25]=s[19]; this._state[10]=s[7];  // A→B: F(r2,c1)=F(r0,c1), D(r0,c1)=U(r2,c1)
+    this._state[34]=s[25]; this._state[16]=s[10]; // B→C: B(r2,c1)=F(r2,c1), D(r2,c1)=D(r0,c1)
+    this._state[28]=s[34]; this._state[1]=s[16];  // C→D: B(r0,c1)=B(r2,c1), U(r0,c1)=D(r2,c1)
+    this._state[19]=s[28]; this._state[7]=s[1];   // D→A: F(r0,c1)=B(r0,c1), U(r2,c1)=U(r0,c1)
+  }
+
+  turnMCCW() {
+    const s = [...this._state];
+    this._state[28]=s[19]; this._state[1]=s[7];   // A→D (reverse D→A)
+    this._state[34]=s[28]; this._state[16]=s[1];  // D→C (reverse C→D)
+    this._state[25]=s[34]; this._state[10]=s[16]; // C→B (reverse B→C)
+    this._state[19]=s[25]; this._state[7]=s[10];  // B→A (reverse A→B)
+  }
+
+  // S CW (from +Z): rotate z=0 layer around Z, preserving centers
+  // Edge pairs at z=0: A(3+37), B(5+46), C(14+52), D(12+43)
+  turnSCW() {
+    const s = [...this._state];
+    this._state[5]=s[3];   this._state[46]=s[37]; // A→B: U(r1,c2)=U(r1,c0), R(r0,c1)=L(r0,c1)
+    this._state[14]=s[5];  this._state[52]=s[46]; // B→C: D(r1,c2)=U(r1,c2), R(r2,c1)=R(r0,c1)
+    this._state[12]=s[14]; this._state[43]=s[52]; // C→D: D(r1,c0)=D(r1,c2), L(r2,c1)=R(r2,c1)
+    this._state[3]=s[12];  this._state[37]=s[43]; // D→A: U(r1,c0)=D(r1,c0), L(r0,c1)=L(r2,c1)
+  }
+
+  turnSCCW() {
+    const s = [...this._state];
+    this._state[3]=s[5];   this._state[37]=s[46]; // B→A (reverse A→B)
+    this._state[5]=s[14];  this._state[46]=s[52]; // C→B (reverse B→C)
+    this._state[14]=s[12]; this._state[52]=s[43]; // D→C (reverse C→D)
+    this._state[12]=s[3];  this._state[43]=s[37]; // A→D (reverse D→A)
+  }
+
+  // === HIGH-LEVEL MOVE ===
+  doMove(move) {
+    const m = move.toUpperCase().replace("'","");
+    const prime = move.includes("'");
+    const n = prime ? 3 : 1;
+
+    // Slice moves
+    if (m === 'E') { for (let i = 0; i < n; i++) this.turnECW(); return; }
+    if (m === 'M') { for (let i = 0; i < n; i++) this.turnMCW(); return; }
+    if (m === 'S') { for (let i = 0; i < n; i++) this.turnSCW(); return; }
+
+    // Face moves via turnFace
+    this.turnFace(move);
+  }
+
+  turnFace(move) {
+    switch (move.toUpperCase()) {
+      case 'U': this.turnU(); break;
+      case "U'": this.turnUprime(); break;
+      case 'D': this.turnD(); break;
+      case "D'": this.turnDprime(); break;
+      case 'F': this.turnF(); break;
+      case "F'": this.turnFprime(); break;
+      case 'B': this.turnB(); break;
+      case "B'": this.turnBprime(); break;
+      case 'L': this.turnL(); break;
+      case "L'": this.turnLprime(); break;
+      case 'R': this.turnR(); break;
+      case "R'": this.turnRprime(); break;
+    }
+  }
+
+  scramble(moves = 12) {
+    const movesList = ['U', "U'", 'D', "D'", 'F', "F'", 'B', "B'", 'L', "L'", 'R', "R'"];
+    let lastMove = '';
+    for (let i = 0; i < moves; i++) {
+      let move;
+      do {
+        move = movesList[Math.floor(Math.random() * movesList.length)];
+      } while (lastMove && move[0] === lastMove[0]);
+      this.doMove(move);
+      lastMove = move;
+    }
+  }
+}
+
+window.RubiksCube = RubiksCube;
+window.FACE_COLORS = FACE_COLORS;
+window.FACE_LETTERS = FACE_LETTERS;
+window.FACE_COLORS_HEX = FACE_COLORS_HEX;
+window.FACE_COLORS_RGB = FACE_COLORS_RGB;
