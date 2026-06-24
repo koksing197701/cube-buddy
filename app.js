@@ -582,7 +582,13 @@ class CubeBuddyApp {
       touchStartY = y;
       touchStartFace = this._hitTestFace(x, y); // which face the touch started on
       if (touchStartFace !== null) {
-        this._debugLog(`2D DOWN: ${['U','D','F','B','L','R'][touchStartFace]} at (${x.toFixed(0)},${y.toFixed(0)})`);
+        // Resolve which cell (row,col) was touched within the face
+        const cell = this._resolveCell(x, y, touchStartFace);
+        if (cell) {
+          this._debugLog(`2D DOWN: ${['U','D','F','B','L','R'][touchStartFace]}(${cell.row},${cell.col})`);
+        } else {
+          this._debugLog(`2D DOWN: ${['U','D','F','B','L','R'][touchStartFace]} at (${x.toFixed(0)},${y.toFixed(0)})`);
+        }
       }
     };
 
@@ -864,18 +870,46 @@ class CubeBuddyApp {
 
     if (targetFace === null) {
       if (isHorizontal) {
-        // Horizontal swipe: which row are you in?
-        if (row === 0 && adj.row0 !== null) {
-          targetFace = adj.row0; // swipe top row → turn face above
-        } else if (row === 2 && adj.row2 !== null) {
-          targetFace = adj.row2; // swipe bottom row → turn face below
+        // Horizontal swipe: direction determines target
+        if (dx > 0) {
+          // Swiping right: if any edge on right side, turn right-face
+          if (col === 2 && adj.col2 !== null) {
+            targetFace = adj.col2;
+          } else if (row === 0 && adj.row0 !== null) {
+            targetFace = adj.row0;
+          } else if (row === 2 && adj.row2 !== null) {
+            targetFace = adj.row2;
+          }
+        } else {
+          // Swiping left: if any edge on left side, turn left-face
+          if (col === 0 && adj.col0 !== null) {
+            targetFace = adj.col0;
+          } else if (row === 0 && adj.row0 !== null) {
+            targetFace = adj.row0;
+          } else if (row === 2 && adj.row2 !== null) {
+            targetFace = adj.row2;
+          }
         }
       } else {
-        // Vertical swipe: which column are you in?
-        if (col === 0 && adj.col0 !== null) {
-          targetFace = adj.col0; // swipe left col → turn face to the left
-        } else if (col === 2 && adj.col2 !== null) {
-          targetFace = adj.col2; // swipe right col → turn face to the right
+        // Vertical swipe: direction determines target
+        if (dy > 0) {
+          // Swiping down: if any edge on bottom, turn bottom-face
+          if (row === 2 && adj.row2 !== null) {
+            targetFace = adj.row2;
+          } else if (col === 0 && adj.col0 !== null) {
+            targetFace = adj.col0;
+          } else if (col === 2 && adj.col2 !== null) {
+            targetFace = adj.col2;
+          }
+        } else {
+          // Swiping up: if any edge on top, turn top-face
+          if (row === 0 && adj.row0 !== null) {
+            targetFace = adj.row0;
+          } else if (col === 0 && adj.col0 !== null) {
+            targetFace = adj.col0;
+          } else if (col === 2 && adj.col2 !== null) {
+            targetFace = adj.col2;
+          }
         }
       }
     }
@@ -912,9 +946,38 @@ class CubeBuddyApp {
     return bestFace;
   }
 
+  _resolveCell(clientX, clientY, faceIdx) {
+    const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
+    let targetEl = null;
+    faceEls.forEach(el => {
+      if (parseInt(el.dataset.faceIdx) === faceIdx) {
+        targetEl = el;
+      }
+    });
+    if (!targetEl) return null;
+    const rect = targetEl.getBoundingClientRect();
+    const style = getComputedStyle(targetEl);
+    const padLeft = parseFloat(style.paddingLeft) || 0;
+    const padTop = parseFloat(style.paddingTop) || 0;
+    const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+    const borderTop = parseFloat(style.borderTopWidth) || 0;
+    const insetX = padLeft + borderLeft;
+    const insetY = padTop + borderTop;
+    const innerW = Math.max(1, rect.width - 2 * insetX);
+    const innerH = Math.max(1, rect.height - 2 * insetY);
+    const localX = clientX - rect.left - insetX;
+    const localY = clientY - rect.top - insetY;
+    const col = Math.max(0, Math.min(2, Math.floor(localX / (innerW / 3))));
+    const row = Math.max(0, Math.min(2, Math.floor(localY / (innerH / 3))));
+    return { row, col };
+  }
+
   _doMove(move, isDoubleTap = false) {
     // Save current state to undo history before applying move
     this._pushHistory();
+
+    // Snapshot state before move for color-change debug
+    const stateBefore = this.cube.state.slice();
 
     if (isDoubleTap) {
       this.cube.turnFace(move);
@@ -930,6 +993,29 @@ class CubeBuddyApp {
     this._updateControls();
     this._sync3D();
     this._saveToLocalStorage();
+
+    // Show color changes in bottom debug
+    if (this._debugVisible) {
+      const stateAfter = this.cube.state;
+      const faceNames = ['U','D','F','B','L','R'];
+      const colorNames = ['W','Y','G','B','O','R'];
+      const changes = [];
+      for (let i = 0; i < 54; i++) {
+        if (stateBefore[i] !== stateAfter[i]) {
+          const f = Math.floor(i / 9);
+          const r = Math.floor((i % 9) / 3);
+          const c = i % 3;
+          const fromC = colorNames[stateBefore[i]] || '?';
+          const toC = colorNames[stateAfter[i]] || '?';
+          changes.push(`${faceNames[f]}(${r},${c}):${fromC}→${toC}`);
+        }
+      }
+      if (changes.length > 0) {
+        this._debugLogBottom(`[${move}] ${changes.join(' ')}`);
+      } else {
+        this._debugLogBottom(`[${move}] no change`);
+      }
+    }
 
     // Advance tutorial
     if (this.showTutorial && this.tutorialStep === 0) {

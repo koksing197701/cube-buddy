@@ -105,7 +105,7 @@ class RubiksCube {
     this._state[45]=s[6];  this._state[48]=s[7];  this._state[51]=s[8];
     this._state[9]=s[51];  this._state[10]=s[48]; this._state[11]=s[45];
     this._state[38]=s[9];  this._state[41]=s[10]; this._state[44]=s[11];
-    this._state[6]=s[38];  this._state[7]=s[41];  this._state[8]=s[44];
+    this._state[6]=s[44];  this._state[7]=s[41];  this._state[8]=s[38];
   }
 
   turnFprime() { for (let i = 0; i < 3; i++) this.turnF(); }
@@ -115,9 +115,9 @@ class RubiksCube {
     this._rotateFaceCW(3);
     const s = [...this._state];
     this._state[42]=s[0]; this._state[39]=s[1]; this._state[36]=s[2];
-    this._state[17]=s[36]; this._state[16]=s[39]; this._state[15]=s[42];
+    this._state[15]=s[36]; this._state[16]=s[39]; this._state[17]=s[42];
     this._state[53]=s[15]; this._state[50]=s[16]; this._state[47]=s[17];
-    this._state[2]=s[47];  this._state[1]=s[50];  this._state[0]=s[53];
+    this._state[2]=s[53];  this._state[1]=s[50];  this._state[0]=s[47];
   }
 
   turnBprime() { for (let i = 0; i < 3; i++) this.turnB(); }
@@ -140,7 +140,7 @@ class RubiksCube {
     const s = [...this._state];
     this._state[2]=s[20];  this._state[5]=s[23];  this._state[8]=s[26];
     this._state[33]=s[2];  this._state[30]=s[5];  this._state[27]=s[8];
-    this._state[11]=s[27]; this._state[14]=s[30]; this._state[17]=s[33];
+    this._state[11]=s[33]; this._state[14]=s[30]; this._state[17]=s[27];
     this._state[20]=s[11]; this._state[23]=s[14]; this._state[26]=s[17];
   }
 
@@ -164,21 +164,31 @@ class RubiksCube {
     this._state[48]=s[21]; this._state[49]=s[22]; this._state[50]=s[23];
   }
 
-  // M CW (from +R view): F col1 → D col1 → B col1 reversed → U col1 → F col1
+  // M CW: U→F→D→B→U (per user's physical card mapping)
+  //   U same-row → F, F same-row → D, D reversed → B, B reversed → U
   turnMCW() {
     const s = [...this._state];
-    this._state[25]=s[1];  this._state[22]=s[4];  this._state[19]=s[7];
-    this._state[34]=s[10]; this._state[31]=s[13]; this._state[28]=s[16];
+    // U → F (same row): U(0,1)→F(0,1), U(1,1)→F(1,1), U(2,1)→F(2,1)
+    this._state[19]=s[1];  this._state[22]=s[4];  this._state[25]=s[7];
+    // F → D (same row)
     this._state[10]=s[19]; this._state[13]=s[22]; this._state[16]=s[25];
-    this._state[1]=s[28];  this._state[4]=s[31];  this._state[7]=s[34];
+    // D → B (reversed): D(0,1)→B(2,1), D(2,1)→B(0,1)
+    this._state[34]=s[10]; this._state[31]=s[13]; this._state[28]=s[16];
+    // B → U (reversed): B(2,1)→U(0,1), B(0,1)→U(2,1)
+    this._state[1]=s[34];  this._state[4]=s[31];  this._state[7]=s[28];
   }
 
+  // M CCW: reverse of M CW = U←F, F←D, D←B, B←U
   turnMCCW() {
     const s = [...this._state];
-    this._state[1]=s[25];  this._state[4]=s[22];  this._state[7]=s[19];
-    this._state[10]=s[34]; this._state[13]=s[31]; this._state[16]=s[28];
+    // U ← F (same row)
+    this._state[1]=s[19];  this._state[4]=s[22];  this._state[7]=s[25];
+    // F ← D (same row)
     this._state[19]=s[10]; this._state[22]=s[13]; this._state[25]=s[16];
-    this._state[28]=s[1];  this._state[31]=s[4];  this._state[34]=s[7];
+    // D ← B (reversed): D(0,1) gets B(2,1), D(2,1) gets B(0,1)
+    this._state[10]=s[34]; this._state[13]=s[31]; this._state[16]=s[28];
+    // B ← U (reversed): B(2,1) gets U(0,1), B(0,1) gets U(2,1)
+    this._state[34]=s[1];  this._state[31]=s[4];  this._state[28]=s[7];
   }
 
   // S CW (from +Z view): U r1 → L c1 → D r1 → R c1 → U r1

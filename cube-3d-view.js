@@ -1,5 +1,5 @@
 // Cube Buddy 3D - Three.js cube view module
-// Version: 2.7.4
+// Version: 2.10.1
 // Integrates with RubiksCube class from cube.js
 // Provides 3D rendering + swipe/tap gestures
 
@@ -318,11 +318,38 @@ class CubeBuddy3D {
   _doTurn(face, prime) {
     if (!this.cube || this._animating) return;
     const move = prime ? face + "'" : face;
+
+    // Snapshot state before move for color-change debug
+    const stateBefore = this.cube.state.slice();
+
     this.cube.doMove(move);
     this._moves++;
     this.rebuild();
     if (this.onMovesChange) this.onMovesChange(this._moves);
     if (this.onTurn) this.onTurn(move);
+
+    // Show color changes in bottom debug
+    if (typeof this._debugLogBottom === 'function') {
+      const stateAfter = this.cube.state;
+      const faceNames = ['U','D','F','B','L','R'];
+      const colorNames = ['W','Y','G','B','O','R'];
+      const changes = [];
+      for (let i = 0; i < 54; i++) {
+        if (stateBefore[i] !== stateAfter[i]) {
+          const f = Math.floor(i / 9);
+          const r = Math.floor((i % 9) / 3);
+          const c = i % 3;
+          const fromC = colorNames[stateBefore[i]] || '?';
+          const toC = colorNames[stateAfter[i]] || '?';
+          changes.push(`${faceNames[f]}(${r},${c}):${fromC}→${toC}`);
+        }
+      }
+      if (changes.length > 0) {
+        this._debugLogBottom(`[${move}] ${changes.join(' ')}`);
+      } else {
+        this._debugLogBottom(`[${move}] no change`);
+      }
+    }
   }
 
   // Edge adjacency data (from verified debugging)
