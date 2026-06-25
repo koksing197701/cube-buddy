@@ -1,5 +1,5 @@
 // Cube Buddy 3D - Three.js cube view module
-// Version: 2.10.1
+// Version: 2.11.2
 // Integrates with RubiksCube class from cube.js
 // Provides 3D rendering + swipe/tap gestures
 
@@ -39,24 +39,13 @@ class CubeBuddy3D {
     this.renderer.setClearColor(0x1a1a2e, 0);
     container.appendChild(this.renderer.domElement);
 
-    // Lights — neutral/white ambient so no color cast muddies the faces
-    const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+    // Ambient-only lighting — consistent colors from any angle, no shadow variation
+    const ambient = new THREE.AmbientLight(0xffffff, 1.2);
     this.scene.add(ambient);
 
-    // Key light from upper-front-right
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    keyLight.position.set(5, 6, 5);
-    this.scene.add(keyLight);
-
-    // Back fill from lower-left-rear — keeps dark faces visible
-    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    backLight.position.set(-4, -2, -4);
-    this.scene.add(backLight);
-
-    // Soft rim from below — lifts shadows on bottom edges
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
-    rimLight.position.set(0, -4, 0);
-    this.scene.add(rimLight);
+    // Very subtle hemisphere for slight depth — top is slightly brighter
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x666666, 0.4);
+    this.scene.add(hemi);
 
     // Cube group
     this.cubieSize = 0.7;
@@ -105,6 +94,51 @@ class CubeBuddy3D {
     el.addEventListener('pointerup', (e) => this._onPointerUp(e));
   }
 
+  _getStickerAtPoint(clientX, clientY) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+    const w = rect.width;
+    const h = rect.height;
+
+    // Pre-compute projection matrix once
+    const proj = new THREE.Matrix4().multiplyMatrices(
+      this.camera.projectionMatrix,
+      this.camera.matrixWorldInverse
+    );
+    const vec = new THREE.Vector3();
+    const screen = new THREE.Vector3();
+
+    let best = null;
+    let bestDist = 30; // max pixel radius for sticker hit (generous for small 3D stickers)
+
+    for (const mesh of this.stickerMeshes) {
+      mesh.getWorldPosition(vec);
+      vec.project(this.camera);
+
+      // Skip stickers behind the camera
+      if (vec.z >= 1) continue;
+
+      // NDC → pixel coords
+      screen.x = (vec.x * 0.5 + 0.5) * w;
+      screen.y = (-vec.y * 0.5 + 0.5) * h;
+
+      const dx = screen.x - px;
+      const dy = screen.y - py;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+
+      if (dist < bestDist || (Math.abs(dist - bestDist) < 3 && vec.z < (best?.depth ?? 99))) {
+        // Depth tiebreaker for overlapping stickers
+        if (dist < bestDist || vec.z < (best?.depth ?? 99)) {
+          bestDist = dist;
+          best = { mesh, depth: vec.z };
+        }
+      }
+    }
+
+    return best ? best.mesh : null;
+  }
+
   _onPointerDown(e) {
     this._lastPointer = { x: e.clientX, y: e.clientY };
     this._pointerDown = { x: e.clientX, y: e.clientY };
@@ -114,24 +148,19 @@ class CubeBuddy3D {
 
     if (!this.cube || this._animating) return;
 
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(new THREE.Vector2(mx, my), this.camera);
-
-    const hits = ray.intersectObjects(this.stickerMeshes, false);
-    if (hits.length > 0) {
-      const ud = hits[0].object.userData;
-      if (ud.isSticker) {
-        this._swipeFace = FACE_LETTERS[ud.faceIdx] || '';
-        this._swipeSticker = { faceIdx: ud.faceIdx, row: ud.row, col: ud.col };
-        if (this._debugLog) this._debugLog(`HIT: ${['U','D','F','B','L','R'][ud.faceIdx]}(${ud.row},${ud.col}) ext=${ud.isExternal}`);
-      } else {
-        this._swipeFace = {};
-        if (this._debugLog) this._debugLog('HIT: non-sticker mesh');
-      }
+    const hitMesh = this._getStickerAtPoint(e.clientX, e.clientY);
+    if (hitMesh) {
+      const ud = hitMesh.userData;
+      this._swipeFace = FACE_LETTERS[ud.faceIdx] || '';
+      this._swipeSticker = { faceIdx: ud.faceIdx, row: ud.row, col: ud.col };
+      if (this._debugLog) this._debugLog(`HIT: ${['U','D','F','B','L','R'][ud.faceIdx]}(${ud.row},${ud.col}) ext=${ud.isExternal}`);
     } else {
+      // Check if near cube core for orbit
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(new THREE.Vector2(mx, my), this.camera);
       const coreHits = ray.intersectObjects(this.cubieCores, false);
       this._swipeFace = coreHits.length > 0 ? {} : null;
       if (this._debugLog) this._debugLog(coreHits.length > 0 ? 'HIT: core only' : 'MISS: no hit');
