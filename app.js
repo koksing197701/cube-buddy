@@ -54,9 +54,9 @@ class CubeBuddyApp {
     this.showTutorial = false;
     this.showCelebration = false;
     this.showColorGuide = true;
-    this._viewMode = '2d'; // '2d' = 9-face classic, '3d' = 3D
+    this._viewMode = '3d'; // '2d' = 9-face classic, '3d' = 3D
     this._cube3d = null; // CubeBuddy3D instance
-    this._focusMode = false; // false = classic 9-face, true = focus 5-face
+    this._focusMode = true; // false = classic 9-face, true = focus 5-face
 
     // Undo history: array of {state, moves} snapshots, max 5
     this._history = [];
@@ -202,18 +202,23 @@ class CubeBuddyApp {
     this._updateControls();
     this._renderSnapshotSlots();
     this._updateUndoBtn();
-    // Set initial view tab (2d) without re-rendering
-    this._viewMode = '2d';
-    this.cubeContainer.style.display = 'flex';
-    this.cube3dContainer.style.display = 'none';
-    this.faceButtons.style.display = 'none';
-    if (this.controls2d) this.controls2d.style.display = 'flex';
+    // Set initial view tab (3d)
+    this._viewMode = '3d';
+    this.cubeContainer.style.display = 'none';
+    this.cube3dContainer.style.display = 'flex';
+    this.faceButtons.style.display = 'flex';
+    if (this.controls2d) this.controls2d.style.display = 'none';
     this._update3DFaceButtons();
     if (this.viewBtns) {
       for (const [id, btn] of Object.entries(this.viewBtns)) {
-        btn.classList.toggle('active', id === '2d');
+        btn.classList.toggle('active', id === '3d');
       }
     }
+    this._init3D();
+
+    // Default to focus mode
+    if (this.focusBtn) this.focusBtn.classList.add('active');
+    if (this.fullBtn) this.fullBtn.classList.remove('active');
 
     if (this.showTutorial) {
       this.tutorialStep = 0;
